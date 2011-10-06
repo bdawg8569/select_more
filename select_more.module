@@ -4,39 +4,51 @@
 function select_more_menu() {
 	$items['testpage'] = array(
 		'page callback' => 'drupal_get_form',
-		'page arguments' => array('testpage_view'),
+		'page arguments' => array('select_more_testpage'),
 		'access callback' => TRUE,
-    	'type' => MENU_LOCAL_TASK,
+    	'type' => MENU_NORMAL_ITEM,
 	);
 	return $items;
 }
 
-function testpage_view($form, &$form_state, $key = '') {
-	
-	$form['test'] = array(
-		'#type' => 'textfield',
-		'#title' => t('this is only a test'),
-	);
-	
+function select_more_testpage($form, &$form_state, $key = '') {
 	$form['selectit'] = array(
 		'#type' => 'select_more',
-		'#title' => 'one more test',
+		'#title' => 'any ole title',
+		'#description' => 'you need to fill in this field',
+		'#default_value' => variable_get('selectit', array()),
+		'#select_title' => 'My Title',
 	);
 	
-	$form['boxes'] = array(
-		'#type' => 'checkboxes',
-		'#title' => 'some title',
-		'#options' => array('one', 'two', 'three'),
-	);
-	
-	$form['yeala'] = array(
+	$form['select_lots'] = array(
 		'#type' => 'select_mores',
 		'#title' => 'test title',
-		'#options' => array('value1' => 'value1', 'value2' => 'value2', 'value3' => 'value3'),
-	);
-	
+		'#options' => array(
+			'value1' => array(
+					'title' => 'The value of item 1',
+					'selection' => TRUE,
+					'description' => 'tis default value # one',
+				),
+			'value2' => array(
+					'title' => 'Title on element #2!',
+					'selection' => TRUE,
+					'description' => '',
+				),
+			'value3' => array(
+					'title' => 'the last title',
+					'selection' => FALSE,
+					'description' => 'yeah buddy this is it!',
+				),
+		),
+	); 
 	$form = system_settings_form($form);
+	$form['#submit'][] = 'select_more_testpage_submit';
 	return $form;
+}
+
+function select_more_testpage_submit($form, &$form_state) {
+	kpr($form_state);	
+	exit();
 }
 
 
@@ -114,19 +126,23 @@ function theme_select_more_multiple_element($vars) {
  * Select More element processor.
  */
 function select_more_module_process($element, $form_state, $complete_form) {
+	//kpr($element);
+	$element['#tree'] = TRUE;
 	$element['#element_validate'][] = 'select_more_element_validate';
 		
 	$element['selection'] = array(
 		'#type' => 'checkbox',
-		'#title' => (isset($element['#value']['title'])) ? $element['#value']['title'] : '',
-		'#default_value' => (isset($element['#value']['selection'])) ? $element['#value']['selection'] : 0,
+		'#title' => (isset($element['#value']['title'])) ? $element['#value']['title'] : $element['#select_title'],
+		'#return_value' => (isset($element['#value']['key'])) ? $element['#value']['key'] : NULL,
+		'#default_value' => (isset($element['#default_value']['selection'])) ? $element['#default_value']['selection'] : NULL,
 	);
 	$element['description'] = array(
 		'#type' => 'textarea',
 		'#title' => '',
-		'#default_value' => isset($element['#value']['description']) ? $element['#value']['description'] : NULL,
+		'#default_value' => isset($element['#default_value']['description']) ? $element['#default_value']['description'] : '',
 	);	
 	drupal_add_js(drupal_get_path('module', 'select_more').'/select_more.js');
+	//kpr($element);
 	return $element;
 }
 
@@ -135,14 +151,17 @@ function select_more_module_process($element, $form_state, $complete_form) {
  */
 function select_more_multiple_module_process($element, $form_state, $complete_form) {
 	
-   $value = is_array($element['#value']) ? $element['#value'] : array();
+  $value = is_array($element['#value']) ? $element['#value'] : array();
+  //kpr($value);
   $element['#tree'] = TRUE;
   if (count($element['#options']) > 0) {
     if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
       $element['#default_value'] = array();
     }
     $weight = 0;
-    foreach ($element['#options'] as $key => $choice) {
+	
+	
+   foreach ($element['#options'] as $key => $choice) {
       // Integer 0 is not a valid #return_value, so use '0' instead.
       // @see form_type_checkbox_value().
       // @todo For Drupal 8, cast all integer keys to strings for consistency
@@ -158,19 +177,21 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
       $element += array($key => array());
       $element[$key] += array(
         '#type' => 'select_more',
-        '#return_value' => $key,
+        //'#return_value' => $key,
         '#default_value' => isset($value[$key]) ? $key : NULL,
         '#attributes' => $element['#attributes'],
         '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
         '#weight' => $weight,
 		'#value' => array(
-		  'title'     => $choice,
-          'selection' => 'TEST',
-          'description' => 'DESCRIPTION',
+		  'title'     => $choice['title'],
+          'key' => $key,
+		  'selection' => isset($value[$key]) ? $key : NULL,
+          'description' => isset($value['description']) ? $value['description'] : NULL,
         ),
       );
-    }
+    } 
   }
+  //kpr($value);
   return $element;
 }
 
@@ -446,7 +467,7 @@ function select_more_field_is_empty($item, $field) {
   	$return = FALSE;
   }
 	
-  kpr($return);
+  //kpr($return);
   //exit();
   return $return;
   
@@ -456,28 +477,6 @@ function select_more_field_is_empty($item, $field) {
 /************************************************************************************
 **			SELECT MORE WIDGETS AND FORMATTERS
 ************************************************************************************/
-/**
- * Implements hook_field_widget_info_alter().
- *
- * The List module does not implement widgets of its own, but reuses the
- * widgets defined in options.module.
- *
- * @see list_options_list()
- */
-/*function select_more_field_widget_info_alter(&$info) {
-  $widgets = array(
-    'options_select' => array('select_more_text'),
-	'options_buttons' => array('select_more_text'),
-  );
-
-  foreach ($widgets as $widget => $field_types) {
-    $info[$widget]['field types'] = array_merge($info[$widget]['field types'], $field_types);
-  }
-}
-
-function select_more_field_widget_form_alter(&$element, &$form_state, $context) {
-		return kpr($element);
-}*/
 
 /**
  * Implements hook_field_widget_info().
@@ -490,15 +489,8 @@ function select_more_field_widget_form_alter(&$element, &$form_state, $context) 
  */
 function select_more_field_widget_info() {
   return array(
-    'select_more_buttons' => array(
-      'label' => t('Check boxes'),
-      'field types' => array('select_more_text'),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
-      ),  
-	),
 	  'select_more' => array(
-      'label' => t('Select More Custom'),
+      'label' => t('Select More'),
       'field types' => array('select_more_text'),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_DEFAULT,
@@ -525,7 +517,8 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
   $value_key = key($field['columns']);
   //kpr($value_key);
 
-  $type = str_replace('options_', '', $instance['widget']['type']);
+  //get widget type for switch statementoh
+  $type = $instance['widget']['type'];
   $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
   $required = $element['#required'];
   
@@ -542,19 +535,6 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
   $default_value = _options_storage_to_form($items, $options, $value_key, $properties);
 	//kpr($default_value);
 	switch($type) {
-		case 'select_more_buttons':
-			// If required and there is one single option, preselect it.
-			if ($required && count($options) == 1) {
-				reset($options);
-				$default_value = array(key($options));
-			}
-			$element += array(
-				'#type' => $multiple ? 'checkboxes' : 'radios',
-				// Radio buttons need a scalar value.
-				'#default_value' => $multiple ? $default_value : reset($default_value),
-				'#options' => $options,
-			);
-		break;
 		case 'select_more':
 			//foreach($options as $option) {
 				//$element[] = array(
@@ -572,7 +552,7 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
 					//'#type' = 
 			//}
 			$element += array(
-				'#type' => 'select_more_multiple', 
+				'#type' => 'select_mores', 
 				'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
 				'#options' => $options,
 			);
