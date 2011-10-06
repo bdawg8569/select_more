@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Install functions for the select_more module
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function select_more_field_schema($field) {
+	$columns = array(
+		'selection' => array(
+	  		'type' => 'varchar',
+	  		'length' => 255,
+	  		'not null' => TRUE,
+		),
+		'description' => array(
+			'type' => 'text',
+			'size' => 'big',
+			'not null' => FALSE,
+		),
+	);
+     
+	return array(
+		'columns' => $columns,
+		'indexes' => array(
+	  		'selection' => array('selection'),
+		),
+	);
+}
+
+function select_more_uninstall() {
+
+}

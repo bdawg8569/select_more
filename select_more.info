@@ -1,0 +1,3 @@
+name = Select More
+description = Creates a new field combining a checkbox with a textarea
+core = 7.x

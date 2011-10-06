@@ -1,0 +1,645 @@
+<?php
+
+/** testing out a menu item **/
+function select_more_menu() {
+	$items['testpage'] = array(
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('testpage_view'),
+		'access callback' => TRUE,
+    	'type' => MENU_LOCAL_TASK,
+	);
+	return $items;
+}
+
+function testpage_view($form, &$form_state, $key = '') {
+	
+	$form['test'] = array(
+		'#type' => 'textfield',
+		'#title' => t('this is only a test'),
+	);
+	
+	$form['selectit'] = array(
+		'#type' => 'select_more',
+		'#title' => 'one more test',
+	);
+	
+	$form['boxes'] = array(
+		'#type' => 'checkboxes',
+		'#title' => 'some title',
+		'#options' => array('one', 'two', 'three'),
+	);
+	
+	$form['yeala'] = array(
+		'#type' => 'select_mores',
+		'#title' => 'test title',
+		'#options' => array('value1' => 'value1', 'value2' => 'value2', 'value3' => 'value3'),
+	);
+	
+	$form = system_settings_form($form);
+	return $form;
+}
+
+
+
+/**
+ * Implements hook_element_info().
+ *
+ * Define a new forms api element
+ */
+function select_more_element_info() {
+	$types['select_more'] = array(
+		'#input' => TRUE,
+		'#process' => array('select_more_module_process'),
+		'#theme' => array('select_more_element'),
+		'#theme_wrappers' => array('form_element'),
+		'#autocomplete_path' => FALSE,
+	);
+	$types['select_mores'] = array(
+		'#input' => TRUE,
+		'#process' => array('select_more_multiple_module_process'),
+		'#theme' => array('select_mores_element'),
+		'#theme_wrappers' => array('form_element'),
+		'#autocomplete_path' => FALSE,
+	);
+	return $types;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function select_more_theme() {
+  return array(
+    'select_more_element' => array(
+      'render element' => 'element',
+    ),
+	'select_mores_element' => array(
+	  'render element' => 'element',
+	),
+  );
+}
+
+/**
+ * Theme function for select_more_element.
+ */
+
+function theme_select_more_element($vars) {
+  $element = $vars['element'];
+  $output = '';
+  $output .= '<div class="wrapper-outer">';
+  $output .= '<div class="wrapper-inner">';
+  $output .= drupal_render($element['selection']);
+  $output .= drupal_render($element['description']);
+  $output .= '</div></div>';
+  return $output;
+ 
+}
+
+/**
+ * Theme function for select_more_multiple_element.
+ */
+
+function theme_select_more_multiple_element($vars) {
+  $element = $vars['element'];
+  $output = '';
+  $output .= '<div class="wrapper-outer">';
+  $output .= '<div class="wrapper-inner">';
+  $output .= drupal_render($element['selection']);
+  $output .= drupal_render($element['description']);
+  $output .= '</div></div>';
+  return $output;
+ 
+}
+
+/**
+ * Select More element processor.
+ */
+function select_more_module_process($element, $form_state, $complete_form) {
+	$element['#element_validate'][] = 'select_more_element_validate';
+		
+	$element['selection'] = array(
+		'#type' => 'checkbox',
+		'#title' => (isset($element['#value']['title'])) ? $element['#value']['title'] : '',
+		'#default_value' => (isset($element['#value']['selection'])) ? $element['#value']['selection'] : 0,
+	);
+	$element['description'] = array(
+		'#type' => 'textarea',
+		'#title' => '',
+		'#default_value' => isset($element['#value']['description']) ? $element['#value']['description'] : NULL,
+	);	
+	drupal_add_js(drupal_get_path('module', 'select_more').'/select_more.js');
+	return $element;
+}
+
+/**
+ * Select More Multiple element processor.
+ */
+function select_more_multiple_module_process($element, $form_state, $complete_form) {
+	
+   $value = is_array($element['#value']) ? $element['#value'] : array();
+  $element['#tree'] = TRUE;
+  if (count($element['#options']) > 0) {
+    if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
+      $element['#default_value'] = array();
+    }
+    $weight = 0;
+    foreach ($element['#options'] as $key => $choice) {
+      // Integer 0 is not a valid #return_value, so use '0' instead.
+      // @see form_type_checkbox_value().
+      // @todo For Drupal 8, cast all integer keys to strings for consistency
+      //   with form_process_radios().
+      if ($key === 0) {
+        $key = '0';
+      }
+      // Maintain order of options as defined in #options, in case the element
+      // defines custom option sub-elements, but does not define all option
+      // sub-elements.
+      $weight += 0.001;
+
+      $element += array($key => array());
+      $element[$key] += array(
+        '#type' => 'select_more',
+        '#return_value' => $key,
+        '#default_value' => isset($value[$key]) ? $key : NULL,
+        '#attributes' => $element['#attributes'],
+        '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+        '#weight' => $weight,
+		'#value' => array(
+		  'title'     => $choice,
+          'selection' => 'TEST',
+          'description' => 'DESCRIPTION',
+        ),
+      );
+    }
+  }
+  return $element;
+}
+
+function select_more_element_validate($element, &$form_state, $form) {
+}
+
+/************************************************************************************
+**			FIELD HOOKS AND HELPERS
+************************************************************************************/
+
+/**
+ * Implements hook_field_info().
+ */
+function select_more_field_info() {
+	return array(
+		'select_more_text' => array(
+	  		'label' => t('Select More'),
+	  		'description' => t("This field combines a single checkbox with a single textarea."),
+	  		'settings' => array('allowed_values' => array(), 'allowed_values_function' => ''),
+	  		'default_widget' => 'options_buttons',
+	  		'default_formatter' => 'select_more_default',
+		),
+		'select_more_multiple' => array(
+	  		'label' => t('Select More Multiple'),
+	  		'description' => t("This field stores text values from a list of allowed 'value => label' pairs and provides a description field with each item as well, i.e. 'US States': IL => Illinois, IA => Iowa, IN => Indiana."),
+	  		'settings' => array('allowed_values' => array(), 'allowed_values_function' => ''),
+	  		'default_widget' => 'select_more_multiple',
+	  		'default_formatter' => 'select_more_default',
+		),
+	);
+}
+	
+/**
+ * Implements hook_field_settings_form().
+ */
+function select_more_field_settings_form($field, $instance, $has_data) {
+	$settings = $field['settings'];
+
+	$form['allowed_values'] = array(
+		'#type' => 'textarea',
+		'#title' => t('Allowed values list'),
+		'#default_value' => select_more_allowed_values_string($settings['allowed_values']),
+		'#rows' => 10,
+		'#element_validate' => array('select_more_allowed_values_setting_validate'),
+		'#field_has_data' => $has_data,
+		'#field' => $field,
+		'#field_type' => $field['type'],
+		'#access' => empty($settings['allowed_values_function']),
+	);
+	
+	$description = '<p>' . t('The possible values this field can contain. Enter one value per line, in the format key|label.');
+	$description .= '<br/>' . t('The key is the stored value. The label will be used in displayed values and edit forms.');
+	$description .= '<br/>' . t('The label is optional: if a line contains a single string, it will be used as key and label.');
+	$description .= '</p>';
+	$form['allowed_values']['#description'] = $description;
+
+     
+
+  // Alter the description for allowed values depending on the widget type.
+  $form['allowed_values']['#description'] .= '<p>' . t('Allowed HTML tags in labels: @tags', array('@tags' => _field_filter_xss_display_allowed_tags())) . '</p>';
+
+  $form['allowed_values_function'] = array(
+    '#type' => 'value',
+    '#value' => $settings['allowed_values_function'],
+  );
+  $form['allowed_values_function_display'] = array(
+    '#type' => 'item',
+    '#title' => t('Allowed values list'),
+    '#markup' => t('The value of this field is being determined by the %function function and may not be changed.', array('%function' => $settings['allowed_values_function'])),
+    '#access' => !empty($settings['allowed_values_function']),
+  );
+
+  return $form;
+}
+
+/**
+ * Element validate callback; check that the entered values are valid.
+ */
+function select_more_allowed_values_setting_validate($element, &$form_state) {
+  $field = $element['#field'];
+  $has_data = $element['#field_has_data'];
+  $field_type = $field['type'];
+  $generate_keys =  !$has_data;
+
+  $values = select_more_extract_allowed_values($element['#value'], $field['type'], $generate_keys);
+
+  if (!is_array($values)) {
+    form_error($element, t('Allowed values list: Not Valid input.'));
+  }
+  else {
+    // Check that keys are valid for the field type.
+    foreach ($values as $key => $value) {
+	  if ($field_type == 'select_more_text' && drupal_strlen($key) > 255) {
+        form_error($element, t('Allowed values list: each key must be a string at most 255 characters long.'));
+        break;
+      }
+    }
+
+    // Prevent removing values currently in use.
+    if ($has_data) {
+      $lost_keys = array_diff(array_keys($field['settings']['allowed_values']), array_keys($values));
+      if (_select_more_values_in_use($field, $lost_keys)) {
+        form_error($element, t('Allowed values list: some values are being removed while currently in use.'));
+      }
+    }
+
+    form_set_value($element, $values, $form_state);
+  }
+}
+
+/**
+ * Returns the array of allowed values for a list field.
+ *
+ * The strings are not safe for output. Keys and values of the array should be
+ * sanitized through field_filter_xss() before being displayed.
+ *
+ * @param $field
+ *   The field definition.
+ *
+ * @return
+ *   The array of allowed values. Keys of the array are the raw stored values
+ *   (number or text), values of the array are the display labels.
+ */
+function select_more_allowed_values($field) {
+  $allowed_values = &drupal_static(__FUNCTION__, array());
+
+  if (!isset($allowed_values[$field['id']])) {
+    $function = $field['settings']['allowed_values_function'];
+    if (!empty($function) && function_exists($function)) {
+      $values = $function($field);
+    }
+    else {
+      $values = $field['settings']['allowed_values'];
+    }
+
+    $allowed_values[$field['id']] = $values;
+  }
+
+  return $allowed_values[$field['id']];
+}
+
+/**
+ * Parses a string of 'allowed values' into an array.
+ *
+ * @param $string
+ *   The list of allowed values in string format descibed in
+ *   list_allowed_values_string().
+ * @param $field_type
+ *   The field type. Either 'list_number' or 'list_text'.
+ * @param $generate_keys
+ *   Boolean value indicating whether to generate keys based on the position of
+ *   the value if a key is not manually specified, and if the value cannot be
+ *   used as a key. This should only be TRUE for fields of type 'list_number'.
+ *
+ * @return
+ *   The array of extracted key/value pairs, or NULL if the string is invalid.
+ *
+ * @see list_allowed_values_string()
+ */
+function select_more_extract_allowed_values($string, $field_type, $generate_keys) {
+  $values = array();
+
+  $list = explode("\n", $string);
+  $list = array_map('trim', $list);
+  $list = array_filter($list, 'strlen');
+
+  $generated_keys = $explicit_keys = FALSE;
+  foreach ($list as $position => $text) {
+    $value = $key = FALSE;
+
+    // Check for an explicit key.
+    $matches = array();
+    if (preg_match('/(.*)\|(.*)/', $text, $matches)) {
+      $key = $matches[1];
+      $value = $matches[2];
+      $explicit_keys = TRUE;
+    }
+    // Otherwise see if we can use the value as the key. Detecting true integer
+    // strings takes a little trick.
+    elseif ($field_type == 'select_more_text' || $field_type  == 'select_more_multiple') {
+      $key = $value = $text;
+      $explicit_keys = TRUE;
+    }
+    // Otherwise see if we can generate a key from the position.
+    elseif ($generate_keys) {
+      $key = (string) $position;
+      $value = $text;
+      $generated_keys = TRUE;
+    }
+    else {
+      return;
+    }
+
+    $values[$key] = $value;
+  }
+
+  // We generate keys only if the list contains no explicit key at all.
+  if ($explicit_keys && $generated_keys) {
+    return;
+  }
+
+  return $values;
+}
+
+/**
+ * Generates a string representation of an array of 'allowed values'.
+ *
+ * This string format is suitable for edition in a textarea.
+ *
+ * @param $values
+ *   An array of values, where array keys are values and array values are
+ *   labels.
+ *
+ * @return
+ *   The string representation of the $values array:
+ *    - Values are separated by a carriage return.
+ *    - Each value is in the format "value|label" or "value".
+ */
+function select_more_allowed_values_string($values) {
+  $lines = array();
+  foreach ($values as $key => $value) {
+    $lines[] = "$key|$value";
+  }
+  return implode("\n", $lines);
+}
+
+/**
+ * Checks if a list of values are being used in actual field values.
+ */
+function _select_more_values_in_use($field, $values) {
+  if ($values) {
+    $query = new EntityFieldQuery();
+    $found = $query
+      ->fieldCondition($field['field_name'], 'value', $values)
+      ->range(0, 1)
+      ->execute();
+    return !empty($found);
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_field_validate().
+ *
+ * Possible error codes:
+ * - 'list_illegal_value': The value is not part of the list of allowed values.
+ */
+function select_more_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+  $allowed_values = select_more_allowed_values($field);
+  foreach ($items as $delta => $item) {
+    if (!empty($item['value'])) {
+      if (!empty($allowed_values) && !isset($allowed_values[$item['value']])) {
+        $errors[$field['field_name']][$langcode][$delta][] = array(
+          'error' => 'list_illegal_value',
+          'message' => t('%name: illegal value.', array('%name' => t($instance['label']))),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function select_more_field_is_empty($item, $field) {
+  kpr($item);
+  kpr($field);
+  if (empty($item['selection']) && (string) $item['selection'] !== '0') {
+   $return = TRUE;
+  }
+  else {
+  	$return = FALSE;
+  }
+	
+  kpr($return);
+  //exit();
+  return $return;
+  
+}
+
+
+/************************************************************************************
+**			SELECT MORE WIDGETS AND FORMATTERS
+************************************************************************************/
+/**
+ * Implements hook_field_widget_info_alter().
+ *
+ * The List module does not implement widgets of its own, but reuses the
+ * widgets defined in options.module.
+ *
+ * @see list_options_list()
+ */
+/*function select_more_field_widget_info_alter(&$info) {
+  $widgets = array(
+    'options_select' => array('select_more_text'),
+	'options_buttons' => array('select_more_text'),
+  );
+
+  foreach ($widgets as $widget => $field_types) {
+    $info[$widget]['field types'] = array_merge($info[$widget]['field types'], $field_types);
+  }
+}
+
+function select_more_field_widget_form_alter(&$element, &$form_state, $context) {
+		return kpr($element);
+}*/
+
+/**
+ * Implements hook_field_widget_info().
+ *
+ * Field type modules willing to use those widgets should:
+ * - Use hook_field_widget_info_alter() to append their field own types to the
+ *   list of types supported by the widgets,
+ * - Implement hook_options_list() to provide the list of options.
+ * See list.module.
+ */
+function select_more_field_widget_info() {
+  return array(
+    'select_more_buttons' => array(
+      'label' => t('Check boxes'),
+      'field types' => array('select_more_text'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+      ),  
+	),
+	  'select_more' => array(
+      'label' => t('Select More Custom'),
+      'field types' => array('select_more_text'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+	  'select_more_multiple' => array(
+      'label' => t('Select More Multiple'),
+      'field types' => array('select_more_multiple'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function select_more_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  // Abstract over the actual field columns, to allow different field types to
+  // reuse those widgets.
+  //kpr($element);
+  //kpr($field);
+  $value_key = key($field['columns']);
+  //kpr($value_key);
+
+  $type = str_replace('options_', '', $instance['widget']['type']);
+  $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
+  $required = $element['#required'];
+  
+  //looking for existing data (edit form)
+  $has_value = isset($items[0][$value_key]);
+  $properties = _options_properties($type, $multiple, $required, $has_value);
+
+  // Prepare the list of options.
+  $options = _options_get_options($field, $instance, $properties);
+  
+  //kpr($options);
+
+  // Put current field values in shape.
+  $default_value = _options_storage_to_form($items, $options, $value_key, $properties);
+	//kpr($default_value);
+	switch($type) {
+		case 'select_more_buttons':
+			// If required and there is one single option, preselect it.
+			if ($required && count($options) == 1) {
+				reset($options);
+				$default_value = array(key($options));
+			}
+			$element += array(
+				'#type' => $multiple ? 'checkboxes' : 'radios',
+				// Radio buttons need a scalar value.
+				'#default_value' => $multiple ? $default_value : reset($default_value),
+				'#options' => $options,
+			);
+		break;
+		case 'select_more':
+			//foreach($options as $option) {
+				//$element[] = array(
+					//'#type' = 
+			//}
+			$element += array(
+				'#type' => 'select_more', 
+				'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+			);
+			//kpr($element);
+	 	break;
+		case 'select_more_multiple':
+			//foreach($options as $option) {
+				//$element[] = array(
+					//'#type' = 
+			//}
+			$element += array(
+				'#type' => 'select_more_multiple', 
+				'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+				'#options' => $options,
+			);
+			//kpr($element);
+	 	break;
+
+	}
+
+  $element += array(
+    '#value_key' => $value_key,
+    //'#element_validate' => array('options_field_widget_validate'),
+    //'#properties' => $properties,
+  );
+
+  return $element;
+}
+
+/**
+ * Implements hook_options_list().
+ */
+function select_more_options_list($field) {
+  return select_more_allowed_values($field);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function select_more_field_formatter_info() {
+  return array(
+    'select_more_default' => array(
+      'label' => t('Default'),
+      'field types' => array('select_more_text'),
+    ),
+    'select_more_key' => array(
+      'label' => t('Key'),
+      'field types' => array('select_more_text'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function select_more_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'select_more_default':
+      $allowed_values = select_more_allowed_values($field);
+      foreach ($items as $delta => $item) {
+        if (isset($allowed_values[$item['selection']])) {
+          $output = field_filter_xss($allowed_values[$item['selection']]);
+        }
+        else {
+          // If no match was found in allowed values, fall back to the key.
+          $output = field_filter_xss($item['selection']);
+        }
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+
+    case 'select_more_key':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array('#markup' => field_filter_xss($item['selection']));
+      }
+      break;
+  }
+
+  return $element;
+}
