@@ -12,6 +12,7 @@ function select_more_menu() {
 }
 
 function select_more_testpage($form, &$form_state, $key = '') {
+	//kpr(variable_get('selectit', array()));
 	$form['selectit'] = array(
 		'#type' => 'select_more',
 		'#title' => 'any ole title',
@@ -20,7 +21,7 @@ function select_more_testpage($form, &$form_state, $key = '') {
 		'#select_title' => 'My Title',
 	);
 
-	$form['select_lots'] = array(
+	/*$form['select_lots'] = array(
 		'#type' => 'select_mores',
 		'#title' => 'test title',
 		'#options' => array(
@@ -40,15 +41,15 @@ function select_more_testpage($form, &$form_state, $key = '') {
 					'description' => 'yeah buddy this is it!',
 				),
 		),
-	);
+	); */
 	$form = system_settings_form($form);
 	$form['#submit'][] = 'select_more_testpage_submit';
 	return $form;
 }
 
 function select_more_testpage_submit($form, &$form_state) {
-	kpr($form_state);	
-	exit();
+	//kpr($form_state);	
+	//exit();
 }
 
 
@@ -132,7 +133,7 @@ function select_more_module_process($element, $form_state, $complete_form) {
 	$element['selection'] = array(
 		'#type' => 'checkbox',
 		'#title' => (isset($element['#value']['title'])) ? $element['#value']['title'] : $element['#select_title'],
-		'#return_value' => (isset($element['#value']['key'])) ? $element['#value']['key'] : NULL,
+		'#return_value' => (isset($element['#value']['key'])) ? $element['#value']['key'] : $element['#title'],
 		'#default_value' => (isset($element['#default_value']['selection'])) ? $element['#default_value']['selection'] : NULL,
 	);
 	$element['description'] = array(
@@ -151,6 +152,7 @@ function select_more_module_process($element, $form_state, $complete_form) {
       implode($id_parts, '-'),
     ),
   ), 'setting');
+  //kpr($element);
 	return $element;
 }
 
