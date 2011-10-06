@@ -114,6 +114,8 @@ function theme_select_more_multiple_element($vars) {
  * Select More element processor.
  */
 function select_more_module_process($element, $form_state, $complete_form) {
+  kpr($element);
+  //kpr($complete_form);
 	$element['#element_validate'][] = 'select_more_element_validate';
 		
 	$element['selection'] = array(
@@ -127,6 +129,16 @@ function select_more_module_process($element, $form_state, $complete_form) {
 		'#default_value' => isset($element['#value']['description']) ? $element['#value']['description'] : NULL,
 	);	
 	drupal_add_js(drupal_get_path('module', 'select_more').'/select_more.js');
+  $id_parts = array();
+  $id_parts[] = $element['#array_parents'][0];
+  if (!empty($element['#return_value'])) {
+    $id_parts[] = $element['#return_value']; // @TODO, this should really be #default_value, but it's not being set.
+  }
+  drupal_add_js(array(
+    'selectMore' => array(
+      implode($id_parts, '-'),
+    ),
+  ), 'setting');
 	return $element;
 }
 
