@@ -40,7 +40,7 @@ function select_more_testpage($form, &$form_state, $key = '') {
 		'#type' => 'select_mores',
 		'#title' => 'test title',
 	    '#default_value' =>  variable_get('select_lots', $defaults),
-		'#options' => array(
+		'#data' => array(
 			'value1' =>  'The value of item 1',
 			'value2' =>  'Title on element 2!',
 			'value3' =>  'the last title',
@@ -83,14 +83,7 @@ function select_more_element_info() {
 }
 
 function select_more_multiple_validate(&$element, &$form_state) {
-	kpr($element);
-	$options = $element['#options'];
-	$values = $element['#value'];
-	kpr($options);
-	kpr($values);
-	$element['#options'] = $values;
-	kpr($element);
-	//exit();
+
 }
 /**
  * Implements hook_theme().
@@ -212,7 +205,7 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
         '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
         '#weight' => $weight,
 		'#data' => array(
-		  'title'     => isset($element['#options'][$key]) ? $element['#options'][$key] : '',
+		  'title'     => isset($element['#data'][$key]) ? $element['#data'][$key] : '',
           'key' => $key,
 		  'selection' => isset($value[$key]) ? $key : NULL,
           'description' => isset($value['description']) ? $value['description'] : NULL,
