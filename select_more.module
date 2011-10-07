@@ -151,8 +151,6 @@ function select_more_module_process($element, $form_state, $complete_form) {
   if (!empty($element['#data']['selection'])) {
     //$id_parts[] = $element['#data']['selection']; // @TODO, this should really be #default_value, but it's not being set.
   }
-  kpr("ELEMENT");
-  kpr($element);
   drupal_add_js(array(
     'selectMore' => array(
       implode($id_parts, '-'),
@@ -226,8 +224,12 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
   return $element;
 }
 
-function select_more_element_validate($element, &$form_state) {
+function select_more_element_validate(&$element, &$form_state, $form) {
 	
+	if(!isset($element['#value']['selection']) && empty($element['#value']['description'])) {
+		form_error($element, t('you have an errors'));
+		
+	}
 }
 
 /************************************************************************************
@@ -542,7 +544,6 @@ function select_more_field_widget_info() {
  * Implements hook_field_widget_form().
  */
 function select_more_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  kpr($field);
   // Abstract over the actual field columns, to allow different field types to
   // reuse those widgets.
   //kpr($element);
@@ -561,7 +562,6 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
 
   // Prepare the list of options.
   $options = _options_get_options($field, $instance, $properties);
-  kpr($options);
 
   // Put current field values in shape.
   $default_value = _options_storage_to_form($items, $options, $value_key, $properties);
