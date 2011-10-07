@@ -34,7 +34,7 @@ function select_more_testpage($form, &$form_state, $key = '') {
 				),
 		);
 	$form['select_lots'] = array(
-		'#type' => 'select_mores',
+		'#type' => 'select_more_multiple',
 		'#title' => 'test title',
 	    '#default_value' => variable_get('select_lots', $defaults),
 		'#data' => array(
@@ -68,10 +68,10 @@ function select_more_element_info() {
 		'#theme_wrappers' => array('form_element'),
 		'#autocomplete_path' => FALSE,
 	);
-	$types['select_mores'] = array(
+	$types['select_more_multiple'] = array(
 		'#input' => TRUE,
 		'#process' => array('select_more_multiple_module_process'),
-		'#theme' => array('select_mores_element'),
+		'#theme' => array('select_more_multiple_element'),
 		'#theme_wrappers' => array('form_element'),
 		'#autocomplete_path' => FALSE,
 	);
@@ -87,7 +87,7 @@ function select_more_theme() {
     'select_more_element' => array(
       'render element' => 'element',
     ),
-	'select_mores_element' => array(
+	'select_more_multiple_element' => array(
 	  'render element' => 'element',
 	),
   );
@@ -113,7 +113,7 @@ function theme_select_more_element($vars) {
  * Theme function for select_more_multiple_element.
  */
 
-function theme_select_more_multiple_element($vars) {
+function theme_select_more_multiple_multiple_element($vars) {
   $element = $vars['element'];
   $output = '';
   $output .= '<div class="wrapper-outer">';
@@ -235,13 +235,13 @@ function select_more_element_validate($element, &$form_state) {
  */
 function select_more_field_info() {
 	return array(
-		'select_more_text' => array(
+		/*'select_more_text' => array(
 	  		'label' => t('Select More'),
 	  		'description' => t("This field combines a single checkbox with a single textarea."),
 	  		'settings' => array('allowed_values' => array(), 'allowed_values_function' => ''),
 	  		'default_widget' => 'options_buttons',
 	  		'default_formatter' => 'select_more_default',
-		),
+		), */
 		'select_more_multiple' => array(
 	  		'label' => t('Select More Multiple'),
 	  		'description' => t("This field stores text values from a list of allowed 'value => label' pairs and provides a description field with each item as well, i.e. 'US States': IL => Illinois, IA => Iowa, IN => Indiana."),
@@ -580,7 +580,7 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
 					//'#type' = 
 			//}
 			$element += array(
-				'#type' => 'select_mores', 
+				'#type' => 'select_more_multiple', 
 				'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
 				'#options' => $options,
 			);
