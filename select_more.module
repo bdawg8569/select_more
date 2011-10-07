@@ -12,7 +12,6 @@ function select_more_menu() {
 }
 
 function select_more_testpage($form, &$form_state, $key = '') {
-	//kpr(variable_get('selectit', array()));
 	$form['selectit'] = array(
 		'#type' => 'select_more',
 		'#title' => 'any ole title',
@@ -20,26 +19,24 @@ function select_more_testpage($form, &$form_state, $key = '') {
 		'#default_value' => variable_get('selectit', array()),
 		'#select_title' => 'My Title',
 	);
-	//kpr($form);
-	//kpr(variable_get('select_lots', array()));
 	$defaults = array(
 			'value1' => array(
-					'selection' => 0,
+					'selection' => 'on',
 					'description' => 'tis default value one',
 				),
 			'value2' => array(
-					'selection' => 0,
+					'selection' => 'off',
 					'description' => '',
 				),
 			'value3' => array(
-					'selection' => 'value3',
+					'selection' => 'on',
 					'description' => 'yeah buddy this is it!',
 				),
 		);
 	$form['select_lots'] = array(
 		'#type' => 'select_mores',
 		'#title' => 'test title',
-	    '#default_value' =>  variable_get('select_lots', $defaults),
+	    '#default_value' => variable_get('select_lots', $defaults),
 		'#data' => array(
 			'value1' =>  'The value of item 1',
 			'value2' =>  'Title on element 2!',
@@ -77,14 +74,11 @@ function select_more_element_info() {
 		'#theme' => array('select_mores_element'),
 		'#theme_wrappers' => array('form_element'),
 		'#autocomplete_path' => FALSE,
-		'#element_validate' => array('select_more_multiple_validate'),
 	);
 	return $types;
 }
 
-function select_more_multiple_validate(&$element, &$form_state) {
 
-}
 /**
  * Implements hook_theme().
  */
@@ -169,40 +163,53 @@ function select_more_module_process($element, $form_state, $complete_form) {
 function select_more_multiple_module_process($element, $form_state, $complete_form) {
 	
   $value = is_array($element['#value']) ? $element['#value'] : array();
-  //kpr($value);
+  
   $element['#tree'] = TRUE;
+  
+  //loop thru all the items in the default values hash, each key is the value to be used
+  // for the checkbox and also contains keys for setting the default values for the state
+  // of the checkbox and the description
   if (count($element['#default_value']) > 0) {
+	  
+	 //@TODO I think this can be removed now 
     //if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
       //$element['#default_value'] = array();
     //}
-    $weight = 0;
 	
-	
+   $weight = 0;
+   
    foreach ($element['#default_value'] as $key => $choice) {
       // Integer 0 is not a valid #return_value, so use '0' instead.
-      // @see form_type_checkbox_value().
-      // @todo For Drupal 8, cast all integer keys to strings for consistency
-      //   with form_process_radios().
       if ($key === 0) {
         $key = '0';
       }
-      // Maintain order of options as defined in #options, in case the element
+	  
+	  //convert default values of "on" to the key of the array so that core
+	  //will give it the "checked" property
+	  if($choice['selection'] === 'on') {
+		$choice['selection'] = $key;
+	  }
+      // Maintain order of options as defined in #data, in case the element
       // defines custom option sub-elements, but does not define all option
       // sub-elements.
       $weight += 0.001;
-
+	   
       $element += array($key => array());
+	  
+	  //set default values for each individual select_more control
 	  $defaults = array(
 	  		'selection' => $choice['selection'],
 			'description' => $choice['description'],
 		);
+	  
       $element[$key] += array(
         '#type' => 'select_more',
-        //'#return_value' => $key,
         '#default_value' => $defaults,
         '#attributes' => $element['#attributes'],
         '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
         '#weight' => $weight,
+		//#data provides a way to pass info to the individual select more process that will pass
+		// the info to the checkbox and textarea
 		'#data' => array(
 		  'title'     => isset($element['#data'][$key]) ? $element['#data'][$key] : '',
           'key' => $key,
@@ -212,14 +219,11 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
       );
     } 
   }
- // kpr($element);
   return $element;
 }
 
-function select_more_element_validate($element, &$form_state, $form) {
-	//kpr($element);
-	//kpr('BREAK');
-	//kpr($form_state);
+function select_more_element_validate($element, &$form_state) {
+	
 }
 
 /************************************************************************************
