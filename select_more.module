@@ -408,15 +408,15 @@ function select_more_extract_allowed_values($string, $field_type, $generate_keys
   $list = explode("\n", $string);
   $list = array_map('trim', $list);
   $list = array_filter($list, 'strlen');
-
+	
   $generated_keys = $explicit_keys = FALSE;
   foreach ($list as $position => $text) {
     $value = $key = FALSE;
-
     // Check for an explicit key.
     $matches = array();
     if (preg_match('/(.*)\|(.*)/', $text, $matches)) {
-      $key = $matches[1];
+	  //for the Javascript to work correct, keys must not have spaces
+      $key = str_replace(' ', '_', $matches[1]);
       $value = $matches[2];
       $explicit_keys = TRUE;
     }
@@ -424,6 +424,8 @@ function select_more_extract_allowed_values($string, $field_type, $generate_keys
     // strings takes a little trick.
     elseif ($field_type == 'select_more_text' || $field_type  == 'select_more_multiple') {
       $key = $value = $text;
+	  //for the Javascript to work correct, keys must not have spaces
+	  $key = str_replace(' ', '_', $key);
       $explicit_keys = TRUE;
     }
     // Otherwise see if we can generate a key from the position.
@@ -440,10 +442,9 @@ function select_more_extract_allowed_values($string, $field_type, $generate_keys
   }
 
   // We generate keys only if the list contains no explicit key at all.
-  if ($explicit_keys && $generated_keys) {
-    return;
-  }
-
+  //if ($explicit_keys && $generated_keys) {
+    //return;
+  //}
   return $values;
 }
 
