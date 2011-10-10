@@ -224,10 +224,11 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
   return $element;
 }
 
-function select_more_element_validate(&$element, &$form_state, $form) {
-	
-	if(!isset($element['#value']['selection']) && empty($element['#value']['description'])) {
-		form_error($element, t('you have an errors'));
+function select_more_element_validate($element, &$form_state, $form) {
+	//kpr($element);
+	//exit();
+	if(!isset($element['#value']['selection']) && !(empty($element['#value']['description']))) {
+		form_error($element, t('You must have a value for every checked box. Either add a description to the checked item, or uncheck it to discard it.'));
 		
 	}
 }
@@ -492,8 +493,8 @@ function select_more_field_validate($entity_type, $entity, $field, $instance, $l
  * Implements hook_field_is_empty().
  */
 function select_more_field_is_empty($item, $field) {
-  kpr($item);
-  kpr($field);
+  //kpr($item);
+  //kpr($field);
   if (empty($item['selection']) && (string) $item['selection'] !== '0') {
    $return = TRUE;
   }
