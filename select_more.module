@@ -18,6 +18,7 @@ function select_more_testpage($form, &$form_state, $key = '') {
 		'#description' => 'you need to fill in this field',
 		'#default_value' => variable_get('selectit', array()),
 		'#select_title' => 'My Title',
+		'#required' => TRUE,
 	);
 	$defaults = array(
 			'value1' => array(
@@ -37,6 +38,7 @@ function select_more_testpage($form, &$form_state, $key = '') {
 		'#type' => 'select_more_multiple',
 		'#title' => 'test title',
 	    '#default_value' => variable_get('select_lots', $defaults),
+		'#required' => TRUE,
 		'#data' => array(
 			'value1' =>  'The value of item 1',
 			'value2' =>  'Title on element 2!',
@@ -165,18 +167,13 @@ function select_more_module_process($element, $form_state, $complete_form) {
 function select_more_multiple_module_process($element, $form_state, $complete_form) {
 	
   $value = is_array($element['#value']) ? $element['#value'] : array();
-  
+  $element['#element_validate'][] = 'select_more_multiple_element_validate';
   $element['#tree'] = TRUE;
   
   //loop thru all the items in the default values hash, each key is the value to be used
   // for the checkbox and also contains keys for setting the default values for the state
   // of the checkbox and the description
   if (count($element['#default_value']) > 0) {
-	  
-	 //@TODO I think this can be removed now 
-    //if (!isset($element['#default_value']) || $element['#default_value'] == 0) {
-      //$element['#default_value'] = array();
-    //}
 	
    $weight = 0;
    
@@ -224,13 +221,39 @@ function select_more_multiple_module_process($element, $form_state, $complete_fo
   return $element;
 }
 
-function select_more_element_validate($element, &$form_state, $form) {
-	//kpr($element);
-	//exit();
+/**
+ Validate an individual select_more element. This is used to make sure that
+ a user doesn't try to save information in a textarea without having the corresponding
+ checkbox checked. 
+**/
+function select_more_element_validate($element, &$form_state, $form) {	
 	if(!isset($element['#value']['selection']) && !(empty($element['#value']['description']))) {
 		form_error($element, t('You must have a value for every checked box. Either add a description to the checked item, or uncheck it to discard it.'));
-		
 	}
+	if($element['#required'] == TRUE && !isset($element['#value']['selection'])) {
+		form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
+	} 
+}
+
+/**
+ Validate an overall select more multiple element
+ Used to make sure a selection was made if the field is required. 
+*/
+function select_more_multiple_element_validate($element, &$form_state, $form) {
+	//make sure that if the field is required, that atleast one checkbox is selected
+	if($element['#required'] == TRUE) {
+		$selected = FALSE;
+		foreach($element['#value'] as $item) {
+			//if selection is set, a selection was made, change to true
+			if(isset($item['selection'])) {
+				$selected = TRUE;	
+			}
+		}
+		if($selected == FALSE) {
+			form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
+		}
+		
+	} 
 }
 
 /************************************************************************************
@@ -242,13 +265,6 @@ function select_more_element_validate($element, &$form_state, $form) {
  */
 function select_more_field_info() {
 	return array(
-		/*'select_more_text' => array(
-	  		'label' => t('Select More'),
-	  		'description' => t("This field combines a single checkbox with a single textarea."),
-	  		'settings' => array('allowed_values' => array(), 'allowed_values_function' => ''),
-	  		'default_widget' => 'options_buttons',
-	  		'default_formatter' => 'select_more_default',
-		), */
 		'select_more_multiple' => array(
 	  		'label' => t('Select More Multiple'),
 	  		'description' => t("This field stores text values from a list of allowed 'value => label' pairs and provides a description field with each item as well, i.e. 'US States': IL => Illinois, IA => Iowa, IN => Indiana."),
@@ -493,17 +509,13 @@ function select_more_field_validate($entity_type, $entity, $field, $instance, $l
  * Implements hook_field_is_empty().
  */
 function select_more_field_is_empty($item, $field) {
-  //kpr($item);
-  //kpr($field);
   if (empty($item['selection']) && (string) $item['selection'] !== '0') {
    $return = TRUE;
   }
   else {
   	$return = FALSE;
   }
-	
-  //kpr($return);
-  //exit();
+
   return $return;
   
 }
@@ -515,22 +527,9 @@ function select_more_field_is_empty($item, $field) {
 
 /**
  * Implements hook_field_widget_info().
- *
- * Field type modules willing to use those widgets should:
- * - Use hook_field_widget_info_alter() to append their field own types to the
- *   list of types supported by the widgets,
- * - Implement hook_options_list() to provide the list of options.
- * See list.module.
  */
 function select_more_field_widget_info() {
   return array(
-	  'select_more' => array(
-      'label' => t('Select More'),
-      'field types' => array('select_more_text'),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
-      ),
-    ),
 	  'select_more_multiple' => array(
       'label' => t('Select More Multiple'),
       'field types' => array('select_more_multiple'),
@@ -547,38 +546,20 @@ function select_more_field_widget_info() {
 function select_more_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   // Abstract over the actual field columns, to allow different field types to
   // reuse those widgets.
-  //kpr($element);
-  //kpr($field);
   $value_key = key($field['columns']);
-  //kpr($value_key);
 
-  //get widget type for switch statementoh
+  //information needed by the options module
   $type = $instance['widget']['type'];
   $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
   $required = $element['#required'];
-  
-  //looking for existing data (edit form)
   $has_value = isset($items[0][$value_key]);
   $properties = _options_properties($type, $multiple, $required, $has_value);
 
   // Prepare the list of options.
   $options = _options_get_options($field, $instance, $properties);
 
-  // Put current field values in shape.
-  $default_value = _options_storage_to_form($items, $options, $value_key, $properties);
-	//kpr($default_value);
+
 	switch($type) {
-		case 'select_more':
-			//foreach($options as $option) {
-				//$element[] = array(
-					//'#type' = 
-			//}
-			$element += array(
-				'#type' => 'select_more', 
-				'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
-			);
-			//kpr($element);
-	 	break;
 		case 'select_more_multiple':
 		  $default_values = array();
 		  $i = 0;
@@ -602,15 +583,12 @@ function select_more_field_widget_form(&$form, &$form_state, $field, $instance, 
 				'#default_value' => $default_values,
 				'#data' => $options,
 			);
-			//kpr($element);
 	 	break;
 
 	}
 
   $element += array(
     '#value_key' => $value_key,
-    //'#element_validate' => array('options_field_widget_validate'),
-    //'#properties' => $properties,
   );
 
   return $element;
@@ -629,12 +607,16 @@ function select_more_options_list($field) {
 function select_more_field_formatter_info() {
   return array(
     'select_more_default' => array(
-      'label' => t('Default'),
-      'field types' => array('select_more_text'),
+      'label' => t('Values and Description'),
+      'field types' => array('select_more_multiple'),
+    ),
+	'select_more_values' => array(
+      'label' => t('Values Only (no descriptions)'),
+      'field types' => array('select_more_multiple'),
     ),
     'select_more_key' => array(
-      'label' => t('Key'),
-      'field types' => array('select_more_text'),
+      'label' => t('Keys Only (from checkboxes)'),
+      'field types' => array('select_more_multiple'),
     ),
   );
 }
@@ -644,25 +626,43 @@ function select_more_field_formatter_info() {
  */
 function select_more_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
-
   switch ($display['type']) {
     case 'select_more_default':
       $allowed_values = select_more_allowed_values($field);
       foreach ($items as $delta => $item) {
-        if (isset($allowed_values[$item['selection']])) {
-          $output = field_filter_xss($allowed_values[$item['selection']]);
-        }
-        else {
-          // If no match was found in allowed values, fall back to the key.
-          $output = field_filter_xss($item['selection']);
-        }
-        $element[$delta] = array('#markup' => $output);
+		//only if the checkbox is 'on'
+		if($item['selection'] != '0') {
+			if (isset($allowed_values[$item['selection']])) {
+			  $output = field_filter_xss($allowed_values[$item['selection']]);
+			  if(!empty($item['description'])) {
+			  	$output .= '<br />'.field_filter_xss($item['description']);
+			  }
+			}
+		$element[$delta] = array('#markup' => $output);
+		}	
+        
       }
       break;
-
+	case 'select_more_values':
+      $allowed_values = select_more_allowed_values($field);
+      foreach ($items as $delta => $item) {
+		//only if the checkbox is 'on'
+		if($item['selection'] != '0') {
+			if (isset($allowed_values[$item['selection']])) {
+			  $output = field_filter_xss($allowed_values[$item['selection']]);
+			}
+		$element[$delta] = array('#markup' => $output);
+		}	
+        
+      }
+      break;
+	  
     case 'select_more_key':
       foreach ($items as $delta => $item) {
-        $element[$delta] = array('#markup' => field_filter_xss($item['selection']));
+		  //only if the checkbox is 'on'
+		  if($item['selection'] != '0') {
+        	$element[$delta] = array('#markup' => field_filter_xss($item['selection']));
+		  }
       }
       break;
   }
