@@ -1,0 +1,273 @@
+<?php
+
+/** testing out a menu item **/
+function select_more_menu() {
+	$items['testpage'] = array(
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('select_more_testpage'),
+		'access callback' => TRUE,
+    	'type' => MENU_NORMAL_ITEM,
+	);
+	return $items;
+}
+
+function select_more_testpage() {
+  $form['mylink'] = array(
+    '#type' => 'link',
+    '#title' => 'my title',
+    '#default_value' => variable_get('mylink', array()),
+  );
+  $form['testitem'] = array(
+    '#type' => 'checkboxes',
+    '#title' => 'Whatever',
+    '#options' => array('one' => 'Value one', 'two' => 'Value 2'),
+  );
+	$form['selectit'] = array(
+		'#type' => 'select_more',
+		'#title' => 'any ole title',
+		'#description' => 'you need to fill in this field',
+		'#default_value' => variable_get('selectit', array()),
+		'#select_title' => 'My Title',
+		//'#required' => TRUE,
+	);
+	$defaults = array(
+			'value1' => array(
+					'selection' => 'on',
+					'description' => 'tis default value one',
+				),
+			'value2' => array(
+					'selection' => 'off',
+					'description' => '',
+				),
+			'value3' => array(
+					'selection' => 'on',
+					'description' => 'yeah buddy this is it!',
+				),
+		);
+	/*$form['select_lots'] = array(
+		'#type' => 'select_more_multiple',
+		'#title' => 'test title',
+	    '#default_value' => variable_get('select_lots', $defaults),
+		'#required' => TRUE,
+		'#data' => array(
+			'value1' =>  'The value of item 1',
+			'value2' =>  'Title on element 2!',
+			'value3' =>  'the last title',
+		),
+	);  */
+	$form = system_settings_form($form);
+	$form['#submit'][] = 'select_more_testpage_submit';
+	return $form;
+}
+
+function select_more_testpage_submit($form, &$form_state) {
+	//kpr($form_state);	
+	//exit();
+}
+
+
+/*
+* Define the new element
+*/
+function select_more_elements() {
+  $elements['select_more'] =  array(
+    '#input' => TRUE,
+    '#process' => array('select_more_module_process'),
+  );
+  return $elements;
+  /*$types['select_more'] = array(
+		'#input' => TRUE,
+		'#process' => array('select_more_module_process'),
+		//'#theme' => array('select_more_element'),
+		//'#theme_wrappers' => array('form_element'),
+		//'#autocomplete_path' => FALSE,
+	);
+	$types['select_more_multiple'] = array(
+		'#input' => TRUE,
+		'#process' => array('select_more_multiple_module_process'),
+		'#theme' => array('select_more_multiple_element'),
+		'#theme_wrappers' => array('form_element'),
+		'#autocomplete_path' => FALSE,
+	);
+	return $types;*/
+}
+
+/**
+ * Implements hook_theme().
+ */
+function select_more_theme() {
+  return array(
+    'select_more_element' => array(
+      'arguments' => array('element' => NULL),
+    ),
+	   'select_more' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Theme function for select_more_element.
+ */
+
+function theme_select_more($element) {
+  $output = '';
+  $output .= '<div class="wrapper-outer">';
+  $output .= '<div class="wrapper-inner">';
+  $output .= theme('checkbox', $element['selection']);
+  $output .= theme('textarea', $element['description']);
+  $output .= '</div></div>';
+  return $output;
+ 
+}
+
+/**
+ * Theme function for select_more_multiple_element.
+ */
+
+function theme_select_more_multiple_multiple_element($vars) {
+  $element = $vars['element'];
+  $output = '';
+  $output .= '<div class="wrapper-outer">';
+  $output .= '<div class="wrapper-inner">';
+  $output .= drupal_render($element['selection']);
+  $output .= drupal_render($element['description']);
+  $output .= '</div></div>';
+  return $output;
+ 
+}
+
+/**
+ * Select More element processor.
+ */
+function select_more_module_process($element, $edit, $form_state, $form) {
+  //kpr($element);
+  $field = $form['#field_info'][$element['#field_name']];
+  $delta = $element['#delta'];
+	$element['#tree'] = TRUE;
+	$element['#element_validate'][] = 'select_more_element_validate';
+		
+	$element['selection'] = array(
+		'#type' => 'checkbox',
+		'#title' => (isset($element['#data']['title'])) ? $element['#data']['title'] : $element['#select_title'],
+		'#return_value' => (isset($element['#data']['key'])) ? $element['#data']['key'] : $element['#title'],
+		'#default_value' => (isset($element['#default_value']['selection'])) ? $element['#default_value']['selection'] : NULL,
+	);
+	$element['description'] = array(
+		'#type' => 'textarea',
+		'#title' => '',
+		'#default_value' => isset($element['#default_value']['description']) ? $element['#default_value']['description'] : '',
+	);	
+	//kpr($element);
+	//drupal_add_js(drupal_get_path('module', 'select_more').'/select_more.js');
+  //$id_parts = array();
+  //foreach ($element['#array_parents'] as $parent) {
+  //  $id_parts[] = str_replace('_', '-', $parent);
+ // }
+  //if (!empty($element['#data']['selection'])) {
+    //$id_parts[] = $element['#data']['selection']; // @TODO, this should really be #default_value, but it's not being set.
+  //}
+  //drupal_add_js(array(
+   // 'selectMore' => array(
+   //   implode($id_parts, '-'),
+   // ),
+  //), 'setting');
+	return $element;;
+
+}
+
+/**
+ * Select More Multiple element processor.
+ */
+function select_more_multiple_module_process($element, $form_state, $complete_form) {
+	
+  /*$value = is_array($element['#value']) ? $element['#value'] : array();
+  $element['#element_validate'][] = 'select_more_multiple_element_validate';
+  $element['#tree'] = TRUE;
+  
+  //loop thru all the items in the default values hash, each key is the value to be used
+  // for the checkbox and also contains keys for setting the default values for the state
+  // of the checkbox and the description
+  if (count($element['#default_value']) > 0) {
+	
+   $weight = 0;
+   
+   foreach ($element['#default_value'] as $key => $choice) {
+      // Integer 0 is not a valid #return_value, so use '0' instead.
+      if ($key === 0) {
+        $key = '0';
+      }
+	  
+	  //convert default values of "on" to the key of the array so that core
+	  //will give it the "checked" property
+	  if($choice['selection'] === 'on') {
+		$choice['selection'] = $key;
+	  }
+      // Maintain order of options as defined in #data, in case the element
+      // defines custom option sub-elements, but does not define all option
+      // sub-elements.
+      $weight += 0.001;
+	   
+      $element += array($key => array());
+	  
+	  //set default values for each individual select_more control
+	  $defaults = array(
+	  		'selection' => $choice['selection'],
+			'description' => $choice['description'],
+		);
+	  
+      $element[$key] += array(
+        '#type' => 'select_more',
+        '#default_value' => $defaults,
+        '#attributes' => $element['#attributes'],
+        '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+        '#weight' => $weight,
+		//#data provides a way to pass info to the individual select more process that will pass
+		// the info to the checkbox and textarea
+		'#data' => array(
+		  'title'     => isset($element['#data'][$key]) ? $element['#data'][$key] : '',
+          'key' => $key,
+		  'selection' => isset($value[$key]) ? $key : NULL,
+          'description' => isset($value['description']) ? $value['description'] : NULL,
+        ),
+      );
+    } 
+  }
+  return $element; */
+}
+
+/**
+ Validate an individual select_more element. This is used to make sure that
+ a user doesn't try to save information in a textarea without having the corresponding
+ checkbox checked. 
+**/
+function select_more_element_validate($element, &$form_state) {	
+  //kpr($element);
+	if(!isset($element['#value']['selection']) && !(empty($element['#value']['description']))) {
+		form_error($element, t('You must have a value for every checked box. Either add a description to the checked item, or uncheck it to discard it.'));
+	}
+	if($element['#required'] == TRUE && !isset($element['#value']['selection'])) {
+		form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
+	} 
+}
+
+/**
+ Validate an overall select more multiple element
+ Used to make sure a selection was made if the field is required. 
+*/
+function select_more_multiple_element_validate($element, &$form_state, $form) {
+	//make sure that if the field is required, that atleast one checkbox is selected
+	/*if($element['#required'] == TRUE) {
+		$selected = FALSE;
+		foreach($element['#value'] as $item) {
+			//if selection is set, a selection was made, change to true
+			if(isset($item['selection'])) {
+				$selected = TRUE;	
+			}
+		}
+		if($selected == FALSE) {
+			form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
+		}
+		
+	} */
+}

@@ -1,0 +1,7 @@
+;$Id$
+name = Select More
+description = Creates a new field combining a checkbox with a textarea to be used as a CCK field
+version = VERSION
+core = 6.x
+package = CCK
+dependencies[] = content

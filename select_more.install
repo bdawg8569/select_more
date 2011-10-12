@@ -1,0 +1,47 @@
+<?php
+
+// $Id$
+// Notify CCK when this module is enabled, disabled, installed,
+// and uninstalled so CCK can do any necessary preparation or cleanup.
+/**
+* @file
+* Implementation of hook_install().
+*/
+function select_more_install() {
+  drupal_load('module', 'content');
+  content_notify('install', 'select_more');
+}
+
+
+/**
+* Implementation of hook_uninstall().
+*/
+function select_more_uninstall() {
+  drupal_load('module', 'content');
+  content_notify('uninstall', 'select_more');
+}
+
+ 
+
+/**
+* Implementation of hook_enable().
+*
+* Notify content module when this module is enabled.
+*/
+
+function select_more_enable() {
+  drupal_load('module', 'content');
+  content_notify('enable', 'select_more');
+}
+
+ 
+/**
+* Implementation of hook_disable().
+*
+* Notify content module when this module is disabled.
+*/
+
+function select_more_disable() {
+  drupal_load('module', 'content');
+  content_notify('disable', 'select_more');
+}
